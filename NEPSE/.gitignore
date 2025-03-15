@@ -1,0 +1,9 @@
+.env
+gqlgen.yml
+go.mod
+go.sum
+models/
+database/models/models.go
+graph/generated.go
+bin/
+makefile

@@ -1,0 +1,130 @@
+schema {
+  query: Query
+}
+
+# Market Mover Types
+type MarketMover {
+  stock_symbol: String!
+  company_name: String!
+  no_of_transactions: Int!
+  max_price: Float!
+  min_price: Float!
+  opening_price: Float!
+  closing_price: Float!
+  amount: Float!
+  previous_closing: Float!
+  difference_rs: Float!
+  percent_change: Float!
+  volume: Int!
+  trade_date: String!
+}
+
+# IPO Alert Type
+type IPOAlert {
+  unique_symbol: String!
+  company_name: String!
+  stock_symbol: String!
+  share_registrar: String!
+  sector_name: String!
+  share_type: String!
+  price_per_unit: String!
+  rating: String!
+  units: String!
+  min_units: String!
+  max_units: String!
+  total_amount: String!
+  opening_date_ad: String!
+  opening_date_bs: String!
+  closing_date_ad: String!
+  closing_date_bs: String!
+  closing_date_closing_time: String!
+  status: String!
+}
+
+# IPO and FPO Alert Type
+type IPOAndFpoAlert {
+  ipo: [IPOAlert!]!
+  fpo: [IPOAlert!]!
+}
+
+# Market Movers Type
+type MarketMovers {
+  gainers: [MarketMover!]!
+  losers: [MarketMover!]!
+}
+
+# Nepse Index Type
+type NepseIndex {
+  index_name: String!
+  index_value: Float!
+  previous_value: Float!
+  opening_value: Float!
+  percent_change: Float!
+  difference: Float!
+  turnover: Float!
+  volume: Int!
+  market_cap: Float!
+  day_high: Float!
+  day_low: Float!
+  year_high: Float!
+  year_low: Float!
+  as_of_date: String!
+}
+
+# Market Type
+type Market {
+  symbol: String!
+  company: String!
+  tradeVolume: Int!
+  high: Float!
+  low: Float!
+  open: Float!
+  close: Float!
+  totalTradedValue: Float!
+  prevClose: Float!
+  priceChange: Float!
+  percentChange: Float!
+  shareVolume: Int!
+  lastupdated: String!
+}
+
+# Indices Type
+type Indices {
+  index_name: String!
+  index_value: Float!
+  previous_value: Float!
+  opening_value: Float!
+  percent_change: Float!
+  difference: Float!
+  turnover: Float!
+  volume: Int!
+  no_of_listed_companies: Int!
+  no_of_traded_companies: Int!
+  no_of_transactions: Int!
+  no_of_listed_shares: Int!
+  market_cap: Float!
+  day_high: Float!
+  day_low: Float!
+  year_high: Float!
+  year_low: Float!
+  as_of_date: String!
+  as_of_date_string: String!
+  no_of_gainers: Int!
+  no_of_losers: Int!
+  no_of_unchanged: Int!
+}
+
+type MarketStatus {
+  isMarketOpen: Boolean!
+}
+
+# Root Query for fetching data
+type Query {
+  getMarketMovers(top: Int!): MarketMovers!
+  getNepseIndex: NepseIndex!
+  getMarkets: [Market!]!
+  getIndices(top: Int!): [Indices!]!
+  getIPOAndFpoAlerts: IPOAndFpoAlert!
+  getMarketBySymbol(stock_symbol: String!): Market!
+  getMarketStatus: MarketStatus!
+}
