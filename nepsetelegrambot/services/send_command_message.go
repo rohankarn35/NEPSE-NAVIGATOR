@@ -1,11 +1,11 @@
 package services
 
 import (
-	"log"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rohankarn35/htmlcapture"
+	"github.com/rohankarn35/nepsemarketbot/applog" // Import the applog package
 	ipodb "github.com/rohankarn35/nepsemarketbot/db"
 	"github.com/rohankarn35/nepsemarketbot/utils"
 	"gorm.io/gorm"
@@ -18,7 +18,7 @@ func SendCommandMessageService(bot *tgbotapi.BotAPI, db *gorm.DB, chatId int64, 
 	if len(datas) == 0 {
 		message := tgbotapi.NewMessage(chatId, "No "+" "+status+" "+stockType+" available for now.")
 		if _, err := bot.Send(message); err != nil {
-			log.Printf("Error sending no data message: %v", err)
+			applog.Log(applog.ERROR, "Error sending no data message: %v", err)
 		}
 		return
 	}
@@ -50,7 +50,8 @@ func SendCommandMessageService(bot *tgbotapi.BotAPI, db *gorm.DB, chatId int64, 
 		}
 		img, err := htmlcapture.Capture(opts)
 		if err != nil {
-			log.Fatalf("Error capturing screenshot: %v", err)
+			applog.Log(applog.ERROR, "Error capturing screenshot: %v", err)
+			return
 		}
 
 		responseText := "Here is the latest " + ipoType + " information for " + data.CompanyName + "."
@@ -66,7 +67,7 @@ func SendCommandMessageService(bot *tgbotapi.BotAPI, db *gorm.DB, chatId int64, 
 			photo.ReplyMarkup = inlineKeyboard
 		}
 		if _, err := bot.Send(photo); err != nil {
-			log.Printf("Error sending market summary image: %v", err)
+			applog.Log(applog.ERROR, "Error sending market summary image: %v", err)
 		}
 
 	}

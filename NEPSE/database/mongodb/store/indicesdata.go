@@ -2,8 +2,8 @@ package store
 
 import (
 	"context"
-	"log"
 	dbmodels "nepseserver/database/models"
+	applog "nepseserver/log"
 	"nepseserver/server"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,7 +15,8 @@ func StoreIndicesData(collection *mongo.Collection) {
 
 	indices, err := server.GetIndices()
 	if err != nil {
-		log.Fatalf("Failed to get indices: %v", err)
+		applog.Log(applog.ERROR, "Failed to get indices: %v", err)
+		return
 	}
 
 	for _, index := range indices {
@@ -50,9 +51,10 @@ func StoreIndicesData(collection *mongo.Collection) {
 		opts := options.Update().SetUpsert(true)
 		_, err := collection.UpdateOne(context.TODO(), filter, update, opts)
 		if err != nil {
-			log.Fatalf("Failed to update index: %v", err)
+			applog.Log(applog.ERROR, "Failed to update index: %v", err)
+			return
 		}
-		log.Print("Indicess data updated sucessfully")
+		applog.Log(applog.INFO, "Indices data updated successfully")
 	}
 
 }

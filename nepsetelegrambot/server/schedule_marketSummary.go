@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -10,42 +9,59 @@ import (
 	"github.com/opensource-nepal/go-nepali/nepalitime"
 	"github.com/robfig/cron/v3"
 	"github.com/rohankarn35/htmlcapture"
+	"github.com/rohankarn35/nepsemarketbot/applog"
 	dbgraphql "github.com/rohankarn35/nepsemarketbot/graphql"
 	"github.com/rohankarn35/nepsemarketbot/services"
+	"github.com/rohankarn35/nepsemarketbot/utils"
 )
 
 func ScheduleMarketSummary(bot *tgbotapi.BotAPI, c *cron.Cron, chatID int64, client *graphql.Client) {
 
-	_, err := c.AddFunc("0 15 * * *", func() {
-		SendMarketSummaryMessage(bot, chatID, client)
+	var isMarketOpen bool
+
+	_, err := c.AddFunc("58 14 * * 0-4", func() {
+		marketSummary, err := dbgraphql.MarketSummary(client)
+		if err != nil {
+			applog.Log(applog.ERROR, "Error fetching market summary: %v", err)
+			return
+		}
+		isMarketOpen = marketSummary.MarketStatus.IsMarketOpen
+		applog.Log(applog.INFO, "Market status fetched at 2:58 PM: %v", isMarketOpen)
 	})
 	if err != nil {
-		log.Printf("Error scheduling market summary: %v", err)
+		applog.Log(applog.ERROR, "Error scheduling market status fetch: %v", err)
 		return
 	}
 
-	log.Print("Market Summary Scheduled")
+	_, err = c.AddFunc("17 15 * * 0-4", func() {
+		SendMarketSummaryMessage(bot, chatID, client, isMarketOpen)
+	})
+	if err != nil {
+		applog.Log(applog.ERROR, "Error scheduling market summary: %v", err)
+		return
+	}
 
+	applog.Log(applog.INFO, "Market Summary Scheduled")
 }
 
-func SendMarketSummaryMessage(bot *tgbotapi.BotAPI, chatID int64, client *graphql.Client) {
+func SendMarketSummaryMessage(bot *tgbotapi.BotAPI, chatID int64, client *graphql.Client, ismarketopen bool) {
 
 	marketSummary, err := dbgraphql.MarketSummary(client)
 	if err != nil {
-		log.Printf("Error fetching market summary: %v", err)
+		applog.Log(applog.ERROR, "Error fetching market summary: %v", err)
 		return
 	}
-	if marketSummary.MarketStatus.IsMarketOpen {
-		datetimeStr := "2025-03-12T15:00:00"
+	if ismarketopen {
+		datetimeStr := marketSummary.NepseIndex.AsOfDate
 
 		datetime, err := time.Parse("2006-01-02T15:04:05", datetimeStr)
 		if err != nil {
-			log.Fatalf("Error converting datetime string to time.Time: %v", err)
+			applog.Log(applog.ERROR, "Error converting datetime string to time.Time: %v", err)
 		}
 
 		er, err := nepalitime.FromEnglishTime(datetime)
 		if err != nil {
-			log.Fatalf("Error parsing time: %v", err)
+			applog.Log(applog.ERROR, "Error parsing time: %v", err)
 		}
 		nep := er.String()[:10]
 		opts := htmlcapture.CaptureOptions{
@@ -56,8 +72,8 @@ func SendMarketSummaryMessage(bot *tgbotapi.BotAPI, chatID int64, client *graphq
 				"IndexPoint":         fmt.Sprintf("%.2f", marketSummary.NepseIndex.IndexValue),
 				"PointChange":        fmt.Sprintf("%.2f", marketSummary.NepseIndex.Difference),
 				"PercentageChange":   fmt.Sprintf("%.2f%%", marketSummary.NepseIndex.PercentChange),
-				"Turnover":           fmt.Sprintf("%.2f", marketSummary.NepseIndex.Turnover),
-				"ShareTraded":        fmt.Sprintf("%d", marketSummary.NepseIndex.Volume),
+				"Turnover":           utils.NumberToCroreArab(marketSummary.NepseIndex.Turnover),
+				"ShareTraded":        utils.NumberToCroreArab(float64(marketSummary.NepseIndex.Volume)),
 				"Sector1":            marketSummary.Indices[0].IndexName,
 				"PointSector1":       fmt.Sprintf("%.2f", marketSummary.Indices[0].Difference),
 				"PonitChangeSector1": fmt.Sprintf("%.2f%%", marketSummary.Indices[0].PercentChange),
@@ -105,23 +121,23 @@ func SendMarketSummaryMessage(bot *tgbotapi.BotAPI, chatID int64, client *graphq
 
 		img, err := htmlcapture.Capture(opts)
 		if err != nil {
-			log.Fatalf("Error capturing screenshot: %v", err)
+			applog.Log(applog.ERROR, "Error capturing screenshot: %v", err)
 		}
 
 		responseText := `📊 NEPSE Daily Market Summary - ` + services.BSDateConvert(nep) + `
 
 📈 NEPSE Index: ` + fmt.Sprintf("%.2f", marketSummary.NepseIndex.IndexValue) + ` (` + fmt.Sprintf("%.2f", marketSummary.NepseIndex.Difference) + ` | ` + fmt.Sprintf("%.2f%%", marketSummary.NepseIndex.PercentChange) + `)
-💰 Total Turnover: Rs ` + fmt.Sprintf("%.2f", marketSummary.NepseIndex.Turnover) + `
-📉 Total Traded Shares: ` + fmt.Sprintf("%d", marketSummary.NepseIndex.Volume)
+💰 Total Turnover: Rs ` + utils.NumberToCroreArabFull(marketSummary.NepseIndex.Turnover) + `
+📉 Total Traded Shares: ` + utils.NumberToCroreArabFull(float64(marketSummary.NepseIndex.Volume))
 
 		photo := tgbotapi.NewPhoto(chatID, tgbotapi.FileBytes{Name: "market_summary.png", Bytes: img})
 		photo.Caption = responseText
 		photo.ParseMode = "Markdown"
 
 		if _, err := bot.Send(photo); err != nil {
-			log.Printf("Error sending market summary image: %v", err)
+			applog.Log(applog.ERROR, "Error sending market summary image: %v", err)
 		}
 	} else {
-		log.Print("Market Closed")
+		applog.Log(applog.INFO, "Market Closed")
 	}
 }

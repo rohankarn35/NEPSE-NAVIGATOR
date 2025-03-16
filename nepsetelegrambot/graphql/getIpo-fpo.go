@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/machinebox/graphql"
+	"github.com/rohankarn35/nepsemarketbot/applog" // Import the applog package
 	"github.com/rohankarn35/nepsemarketbot/models"
 )
 
@@ -55,11 +56,16 @@ func GetIPOFPODetails(client *graphql.Client) ([]models.IPO, []models.FPO, error
 		}
 	`)
 
+	applog.Log(applog.INFO, "Sending GraphQL request to fetch IPO and FPO details")
+
 	var respData models.ResponseData
 
 	if err := client.Run(context.Background(), req, &respData); err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch IPO and FPO details: %v", err)
 		return nil, nil, err
 	}
+
+	applog.Log(applog.INFO, "Successfully fetched IPO and FPO details")
 
 	return respData.GetIPOAndFpoAlerts.IPO, respData.GetIPOAndFpoAlerts.FPO, nil
 }

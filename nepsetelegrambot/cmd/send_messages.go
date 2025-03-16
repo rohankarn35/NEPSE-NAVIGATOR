@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -14,6 +13,7 @@ import (
 	"github.com/rohankarn35/nepsemarketbot/services"
 	"gorm.io/gorm"
 
+	"github.com/rohankarn35/nepsemarketbot/applog"
 	ipodb "github.com/rohankarn35/nepsemarketbot/db"
 	gorm_models "github.com/rohankarn35/nepsemarketbot/db/models"
 	"github.com/rohankarn35/nepsemarketbot/server"
@@ -21,12 +21,12 @@ import (
 
 func SendMessages(db *gorm.DB, c *cron.Cron, bot *tgbotapi.BotAPI, chatID int64, client *graphql.Client) error {
 
-	// // Fetch latest data
+	// Fetch latest data
 	ipoData, fpoData, err := dbgraphql.GetIPOFPODetails(client)
 	if err != nil {
 		return err
 	}
-	log.Printf("Fetched IPO and FPO data successfully")
+	applog.Log(applog.INFO, "Fetched IPO and FPO data successfully")
 
 	var IPOdata []models.IPOAlertModel
 	for _, ipo := range ipoData {
@@ -163,13 +163,13 @@ func SendMessages(db *gorm.DB, c *cron.Cron, bot *tgbotapi.BotAPI, chatID int64,
 				}
 				img, err := htmlcapture.Capture(opts)
 				if err != nil {
-					log.Fatalf("Error capturing screenshot: %v", err)
+					applog.Log(applog.ERROR, "Error capturing screenshot: %v", err)
 				}
 
-				// // Prepare the message text
+				// Prepare the message text
 				responseText := services.FormatIPOMessage(ipo)
 
-				// // Send the photo
+				// Send the photo
 				photo := tgbotapi.NewPhoto(chatID, tgbotapi.FileBytes{Name: "ipoimage", Bytes: img})
 				photo.Caption = responseText
 				photo.ParseMode = "Markdown"
@@ -185,14 +185,13 @@ func SendMessages(db *gorm.DB, c *cron.Cron, bot *tgbotapi.BotAPI, chatID int64,
 
 				// Send the photo with caption and button
 				if _, err := bot.Send(photo); err != nil {
-
-					log.Printf("Error sending IPO image: %v", err)
+					applog.Log(applog.ERROR, "Error sending IPO image: %v", err)
 					continue
 				}
 
-				log.Printf("Successfully sent IPO image to chat ID: %d", chatID)
+				applog.Log(applog.INFO, "Successfully sent IPO image to chat ID: %d", chatID)
 			} else {
-				log.Printf("Message Already Sent: %d", chatID)
+				applog.Log(applog.INFO, "Message Already Sent: %d", chatID)
 			}
 		} else {
 			isAvailable := ipodb.CheckAndUpdateIPOStatus(db, ipo.UniqueSymbol, ipo.Status)
@@ -228,21 +227,21 @@ func SendMessages(db *gorm.DB, c *cron.Cron, bot *tgbotapi.BotAPI, chatID int64,
 func ScheduleSendMessage(db *gorm.DB, c *cron.Cron, bot *tgbotapi.BotAPI, chatID int64, client *graphql.Client) {
 
 	if err := SendMessages(db, c, bot, chatID, client); err != nil {
-		log.Printf("Error sending messages: %v", err)
+		applog.Log(applog.ERROR, "Error sending messages: %v", err)
 		if err := SendMessages(db, c, bot, chatID, client); err != nil {
-			log.Printf("Error sending messages on retry: %v", err)
+			applog.Log(applog.ERROR, "Error sending messages on retry: %v", err)
 		}
 	}
 
 	_, err := c.AddFunc("0 */2 9-17 * *", func() {
 		if err := SendMessages(db, c, bot, chatID, client); err != nil {
-			log.Printf("Error sending messages: %v", err)
+			applog.Log(applog.ERROR, "Error sending messages: %v", err)
 			if err := SendMessages(db, c, bot, chatID, client); err != nil {
-				log.Printf("Error sending messages on retry: %v", err)
+				applog.Log(applog.ERROR, "Error sending messages on retry: %v", err)
 			}
 		}
 	})
 	if err != nil {
-		log.Fatalf("Error scheduling send messages: %v", err)
+		applog.Log(applog.ERROR, "Error scheduling send messages: %v", err)
 	}
 }

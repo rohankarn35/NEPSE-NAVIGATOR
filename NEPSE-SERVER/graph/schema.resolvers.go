@@ -13,23 +13,29 @@ import (
 
 	"sort"
 
+	"nepse-sever-graphql/applog" // Import the applog package
+
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // GetMarketMovers is the resolver for the getMarketMovers field.
 func (r *queryResolver) GetMarketMovers(ctx context.Context, top int32) (*model.MarketMovers, error) {
+	applog.Log(applog.INFO, "Fetching market movers with top %d", top)
 	collection := r.MongoClient.Collection("marketmovers")
 
 	var marketMovers dbmodels.MarketMovers
 	err := collection.FindOne(ctx, bson.M{}).Decode(&marketMovers)
 	if err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch market movers: %v", err)
 		return nil, fmt.Errorf("failed to fetch market movers: %v", err)
 	}
 
 	if int(top) > len(marketMovers.Gainers) || int(top) > len(marketMovers.Loser) {
+		applog.Log(applog.WARN, "Requested top %d is greater than available gainers or losers", top)
 		return nil, fmt.Errorf("requested top %d is greater than available gainers or losers", top)
 	}
 
+	applog.Log(applog.INFO, "Successfully fetched market movers")
 	return &model.MarketMovers{
 		Gainers: mapMarketMovers(marketMovers.Gainers, top),
 		Losers:  mapMarketMovers(marketMovers.Loser, top),
@@ -56,10 +62,6 @@ func mapMarketMovers(movers []dbmodels.MarketMover, top int32) []*model.MarketMo
 		})
 	}
 
-	if int(top) > len(result) {
-
-	}
-
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].PercentChange > result[j].PercentChange
 	})
@@ -76,14 +78,17 @@ func mapMarketMovers(movers []dbmodels.MarketMover, top int32) []*model.MarketMo
 
 // GetNepseIndex is the resolver for the getNepseIndex field.
 func (r *queryResolver) GetNepseIndex(ctx context.Context) (*model.NepseIndex, error) {
+	applog.Log(applog.INFO, "Fetching NEPSE index")
 	collection := r.MongoClient.Collection("nepse-data")
 
 	var nepseIndex dbmodels.NepseIndex
 	err := collection.FindOne(ctx, bson.M{}).Decode(&nepseIndex)
 	if err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch NEPSE index: %v", err)
 		return nil, fmt.Errorf("failed to fetch nepse index: %v", err)
 	}
 
+	applog.Log(applog.INFO, "Successfully fetched NEPSE index")
 	return &model.NepseIndex{
 		IndexName:     nepseIndex.MarketIndex,
 		IndexValue:    nepseIndex.CurrentValue,
@@ -104,10 +109,12 @@ func (r *queryResolver) GetNepseIndex(ctx context.Context) (*model.NepseIndex, e
 
 // GetMarkets is the resolver for the getMarkets field.
 func (r *queryResolver) GetMarkets(ctx context.Context) ([]*model.Market, error) {
+	applog.Log(applog.INFO, "Fetching markets")
 	collection := r.MongoClient.Collection("market-data")
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch markets: %v", err)
 		return nil, fmt.Errorf("failed to fetch markets: %v", err)
 	}
 	defer cursor.Close(ctx)
@@ -116,6 +123,7 @@ func (r *queryResolver) GetMarkets(ctx context.Context) ([]*model.Market, error)
 	for cursor.Next(ctx) {
 		var market dbmodels.Market
 		if err := cursor.Decode(&market); err != nil {
+			applog.Log(applog.ERROR, "Failed to decode market: %v", err)
 			return nil, fmt.Errorf("failed to decode market: %v", err)
 		}
 		markets = append(markets, &model.Market{
@@ -136,18 +144,22 @@ func (r *queryResolver) GetMarkets(ctx context.Context) ([]*model.Market, error)
 	}
 
 	if err := cursor.Err(); err != nil {
+		applog.Log(applog.ERROR, "Cursor error: %v", err)
 		return nil, fmt.Errorf("cursor error: %v", err)
 	}
 
+	applog.Log(applog.INFO, "Successfully fetched markets")
 	return markets, nil
 }
 
 // GetIndices is the resolver for the getIndices field.
 func (r *queryResolver) GetIndices(ctx context.Context, top int32) ([]*model.Indices, error) {
+	applog.Log(applog.INFO, "Fetching indices with top %d", top)
 	collection := r.MongoClient.Collection("indices-data")
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch indices: %v", err)
 		return nil, fmt.Errorf("failed to fetch indices: %v", err)
 	}
 	defer cursor.Close(ctx)
@@ -156,6 +168,7 @@ func (r *queryResolver) GetIndices(ctx context.Context, top int32) ([]*model.Ind
 	for cursor.Next(ctx) {
 		var index dbmodels.Indices
 		if err := cursor.Decode(&index); err != nil {
+			applog.Log(applog.ERROR, "Failed to decode index: %v", err)
 			return nil, fmt.Errorf("failed to decode index: %v", err)
 		}
 		indices = append(indices, &model.Indices{
@@ -184,9 +197,11 @@ func (r *queryResolver) GetIndices(ctx context.Context, top int32) ([]*model.Ind
 		})
 	}
 	if int(top) > len(indices) {
+		applog.Log(applog.WARN, "Requested top %d is greater than available indices", top)
 		return nil, fmt.Errorf("only %d indices available", len(indices))
 	}
 	if err := cursor.Err(); err != nil {
+		applog.Log(applog.ERROR, "Cursor error: %v", err)
 		return nil, fmt.Errorf("cursor error: %v", err)
 	}
 
@@ -202,19 +217,23 @@ func (r *queryResolver) GetIndices(ctx context.Context, top int32) ([]*model.Ind
 		indices = indices[:top]
 	}
 
+	applog.Log(applog.INFO, "Successfully fetched indices")
 	return indices, nil
 }
 
 // GetIPOAndFpoAlerts is the resolver for the getIPOAndFpoAlerts field.
 func (r *queryResolver) GetIPOAndFpoAlerts(ctx context.Context) (*model.IPOAndFpoAlert, error) {
+	applog.Log(applog.INFO, "Fetching IPO and FPO alerts")
 	collection := r.MongoClient.Collection("ipo-fpo")
 
 	var ipoAndFpoAlert dbmodels.IPOAndFpoAlert
 	err := collection.FindOne(ctx, bson.M{}).Decode(&ipoAndFpoAlert)
 	if err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch IPO and FPO alerts: %v", err)
 		return nil, fmt.Errorf("failed to fetch IPO and FPO alerts: %v", err)
 	}
 
+	applog.Log(applog.INFO, "Successfully fetched IPO and FPO alerts")
 	return &model.IPOAndFpoAlert{
 		Ipo: mapIPOAlerts(ipoAndFpoAlert.Ipo),
 		Fpo: mapIPOAlerts(ipoAndFpoAlert.Fpo),
@@ -250,14 +269,17 @@ func mapIPOAlerts(alerts []dbmodels.IPOAlert) []*model.IPOAlert {
 
 // GetMarketBySymbol is the resolver for the getMarketBySymbol field.
 func (r *queryResolver) GetMarketBySymbol(ctx context.Context, stockSymbol string) (*model.Market, error) {
+	applog.Log(applog.INFO, "Fetching market by symbol: %s", stockSymbol)
 	collection := r.MongoClient.Collection("market-data")
 
 	var market dbmodels.Market
 	err := collection.FindOne(ctx, bson.M{"symbol": stockSymbol}).Decode(&market)
 	if err != nil {
+		applog.Log(applog.ERROR, "Failed to fetch market by symbol: %v", err)
 		return nil, fmt.Errorf("failed to fetch market by symbol: %v", err)
 	}
 
+	applog.Log(applog.INFO, "Successfully fetched market by symbol")
 	return &model.Market{
 		Symbol:           market.Symbol,
 		Company:          market.Company,
@@ -277,16 +299,18 @@ func (r *queryResolver) GetMarketBySymbol(ctx context.Context, stockSymbol strin
 
 // GetMarketStatus is the resolver for the getMarketStatus field.
 func (r *queryResolver) GetMarketStatus(ctx context.Context) (*model.MarketStatus, error) {
+	applog.Log(applog.INFO, "Fetching market status")
 	collection := r.MongoClient.Collection("market-status")
 	var marketStatusModel dbmodels.MarketStatus
 	err := collection.FindOne(ctx, bson.M{}).Decode(&marketStatusModel)
 	if err != nil {
+		applog.Log(applog.ERROR, "Cannot retrieve market status: %v", err)
 		return nil, fmt.Errorf("cannot retrieve market status")
 	}
+	applog.Log(applog.INFO, "Successfully fetched market status")
 	return &model.MarketStatus{
 		IsMarketOpen: strings.EqualFold(marketStatusModel.IsOpen, "OPEN"),
 	}, nil
-
 }
 
 // Query returns QueryResolver implementation.

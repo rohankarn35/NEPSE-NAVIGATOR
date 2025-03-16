@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"nepseserver/constants"
 	"nepseserver/database/mongodb"
 	"nepseserver/database/mongodb/cronjobs"
+	applog "nepseserver/log"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -12,9 +12,18 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
+
+	err := applog.InitLogger("app.log", applog.INFO) // Set minimum level to INFO
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		applog.Log(applog.ERROR, "Failed to initialize logger: %v", err)
+		return
+	}
+	defer applog.CloseLogger()
+
+	err = godotenv.Load()
+	if err != nil {
+		applog.Log(applog.ERROR, "Error loading .env file: %v", err)
+		return
 	}
 
 	constants.InitConstant()
@@ -28,7 +37,8 @@ func main() {
 	cron.InitScheduler()
 	mongoClient := mongodb.Init()
 	if mongoClient == nil {
-		log.Fatal("Failed to initialize MongoDB client")
+		applog.Log(applog.ERROR, "Failed to initialize MongoDB client")
+		return
 	}
 	c.Start()
 	select {}

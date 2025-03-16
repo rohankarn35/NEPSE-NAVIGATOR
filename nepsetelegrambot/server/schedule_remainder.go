@@ -2,25 +2,33 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/robfig/cron/v3"
 	"github.com/rohankarn35/htmlcapture"
+	"github.com/rohankarn35/nepsemarketbot/applog" // Import the applog package
 	ipodb "github.com/rohankarn35/nepsemarketbot/db"
 	"github.com/rohankarn35/nepsemarketbot/models"
 	"github.com/rohankarn35/nepsemarketbot/services"
 	"gorm.io/gorm"
 )
 
+func init() {
+	// Initialize the logger
+	err := applog.InitLogger("app.log", applog.DEBUG)
+	if err != nil {
+		fmt.Println("Error initializing logger:", err)
+	}
+}
+
 func Scheduler(closingdate, closingtime string, ipoData models.IPOAlertModel, bot *tgbotapi.BotAPI, c *cron.Cron, chatID int64) {
 	layout := "2006-01-02 3:04 PM"
 	closingDateTimeStr := fmt.Sprintf("%s %s", closingdate, closingtime)
 	closingDateTime, err := time.Parse(layout, closingDateTimeStr)
 	if err != nil {
-		fmt.Println("Error parsing date and time:", err)
+		applog.Log(applog.ERROR, "Error parsing date and time: %v", err)
 		return
 	}
 
@@ -31,10 +39,11 @@ func Scheduler(closingdate, closingtime string, ipoData models.IPOAlertModel, bo
 		RemainderFunction(ipoData, bot, chatID)
 	})
 	if err != nil {
-		fmt.Println("Error scheduling task:", err)
+		applog.Log(applog.ERROR, "Error scheduling task: %v", err)
 		return
 	}
-	fmt.Println("The scheduler has beeen done")
+	applog.Log(applog.INFO, "The scheduler has been set up")
+	fmt.Print("the scheduler has been set up")
 }
 
 func RemainderFunction(ipo models.IPOAlertModel, bot *tgbotapi.BotAPI, chatID int64) {
@@ -66,7 +75,8 @@ func RemainderFunction(ipo models.IPOAlertModel, bot *tgbotapi.BotAPI, chatID in
 	}
 	img, err := htmlcapture.Capture(opts)
 	if err != nil {
-		log.Fatalf("Error capturing screenshot: %v", err)
+		applog.Log(applog.ERROR, "Error capturing screenshot: %v", err)
+		return
 	}
 
 	responseText := services.FormatIPOAlertMessage(ipo)
@@ -82,17 +92,17 @@ func RemainderFunction(ipo models.IPOAlertModel, bot *tgbotapi.BotAPI, chatID in
 		photo.ReplyMarkup = inlineKeyboard
 	}
 
-	log.Printf("Attempting to send IPO message to chat ID: %d", chatID)
+	applog.Log(applog.INFO, "Attempting to send IPO message to chat ID: %d", chatID)
 
 	for i := 0; i < 2; i++ {
 		if _, err := bot.Send(photo); err != nil {
-			log.Printf("Error sending IPO message (attempt %d): %v", i+1, err)
+			applog.Log(applog.ERROR, "Error sending IPO message (attempt %d): %v", i+1, err)
 			if i == 1 {
-				log.Printf("Failed to send IPO message after 2 attempts")
+				applog.Log(applog.ERROR, "Failed to send IPO message after 2 attempts")
 				return
 			}
 		} else {
-			log.Printf("Successfully sent IPO message to chat ID: %d", chatID)
+			applog.Log(applog.INFO, "Successfully sent IPO message to chat ID: %d", chatID)
 			break
 		}
 	}
@@ -101,7 +111,7 @@ func RemainderFunction(ipo models.IPOAlertModel, bot *tgbotapi.BotAPI, chatID in
 func InitializeScheduleronRestart(bot *tgbotapi.BotAPI, c *cron.Cron, db *gorm.DB, chatID int64) {
 	ipoCronData, err := ipodb.ReadCron(db)
 	if err != nil {
-		log.Printf("Error reading cron data from database: %v", err)
+		applog.Log(applog.ERROR, "Error reading cron data from database: %v", err)
 		return
 	}
 

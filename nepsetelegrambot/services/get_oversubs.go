@@ -3,12 +3,12 @@ package services
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/rohankarn35/nepsemarketbot/applog"
 	"golang.org/x/net/html"
 )
 
@@ -108,13 +108,15 @@ func GetIPOOverscribeData(symbol string) string {
 	// Fetch data from API
 	htmlContent, err := fetchDataFromAPI()
 	if err != nil {
-		log.Fatalf("Failed to fetch data: %v", err)
+		applog.Log(applog.ERROR, "Failed to fetch data: %v", err)
+		return ""
 	}
 
 	// Parse HTML content
 	doc, err := html.Parse(strings.NewReader(htmlContent))
 	if err != nil {
-		log.Fatalf("Error parsing HTML: %v", err)
+		applog.Log(applog.ERROR, "Error parsing HTML: %v", err)
+		return ""
 	}
 
 	// Extract company information
@@ -125,11 +127,13 @@ func GetIPOOverscribeData(symbol string) string {
 		if strings.Contains(company.CompanyName, symbol) {
 			issuedUnit, err := strconv.ParseFloat(strings.ReplaceAll(company.IssuedUnit, ",", ""), 64)
 			if err != nil {
-				log.Fatalf("Error converting IssuedUnit to float: %v", err)
+				applog.Log(applog.ERROR, "Error converting IssuedUnit to float: %v", err)
+				return ""
 			}
 			appliedUnit, err := strconv.ParseFloat(strings.ReplaceAll(company.AppliedUnit, ",", ""), 64)
 			if err != nil {
-				log.Fatalf("Error converting AppliedUnit to float: %v", err)
+				applog.Log(applog.ERROR, "Error converting AppliedUnit to float: %v", err)
+				return ""
 			}
 			return fmt.Sprintf("%.2f", appliedUnit/issuedUnit)
 		}

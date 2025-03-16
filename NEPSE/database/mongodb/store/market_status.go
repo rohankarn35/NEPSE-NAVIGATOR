@@ -2,8 +2,8 @@ package store
 
 import (
 	"context"
-	"log"
 	dbmodels "nepseserver/database/models"
+	applog "nepseserver/log"
 	"nepseserver/server"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,7 +15,7 @@ func MarketStatus(collection *mongo.Collection) {
 
 	marketStatus, err := server.GetMarketStatus()
 	if err != nil {
-		log.Printf("Error getting market status: %v", err)
+		applog.Log(applog.ERROR, "Error getting market status: %v", err)
 		return
 	}
 
@@ -32,7 +32,6 @@ func MarketStatus(collection *mongo.Collection) {
 		options.Update().SetUpsert(true),
 	)
 	if err != nil {
-		log.Printf("Error updating market status in MongoDB: %v", err)
+		applog.Log(applog.ERROR, "Error updating market status in MongoDB: %v", err)
 	}
-
 }

@@ -2,9 +2,11 @@ package store
 
 import (
 	"context"
-	"log"
-	dbmodels "nepseserver/database/models"
+
+	applog "nepseserver/log"
 	"nepseserver/server"
+
+	models "nepseserver/database/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,10 +16,11 @@ import (
 func StoreNepseData(collection *mongo.Collection) {
 	nepseData, err := server.FetchNepseData()
 	if err != nil {
-		log.Print("Failed to fetch nepse data")
+		applog.Log(applog.ERROR, "Failed to fetch nepse data")
+		return
 	}
 
-	data := dbmodels.NepseIndex{
+	data := models.NepseIndex{
 		MarketIndex:          nepseData.IndexName,
 		CurrentValue:         nepseData.IndexValue,
 		PreviousClose:        nepseData.PreviousValue,
@@ -39,8 +42,8 @@ func StoreNepseData(collection *mongo.Collection) {
 
 	_, err = collection.UpdateOne(context.TODO(), filter, update, opts)
 	if err != nil {
-		log.Printf("Failed to upsert nepse data: %v", err)
+		applog.Log(applog.ERROR, "Failed to upsert nepse data: %v", err)
+		return
 	}
-	log.Print("Nepse Data updated")
-
+	applog.Log(applog.INFO, "Nepse Data updated")
 }

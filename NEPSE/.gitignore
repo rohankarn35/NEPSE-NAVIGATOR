@@ -7,3 +7,4 @@ database/models/models.go
 graph/generated.go
 bin/
 makefile
+*.log

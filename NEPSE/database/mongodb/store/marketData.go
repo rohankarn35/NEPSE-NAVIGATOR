@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	dbmodels "nepseserver/database/models"
+	applog "nepseserver/log"
 	"nepseserver/server"
 	"strings"
 
@@ -15,6 +16,7 @@ func StoreOrUpdateMarketData(collection *mongo.Collection) error {
 	// Fetch stock market data
 	stocks, err := server.MarketData()
 	if err != nil {
+		applog.Log(applog.ERROR, "error fetching market data: %v", err)
 		return fmt.Errorf("error fetching market data: %v", err)
 	}
 
@@ -55,11 +57,12 @@ func StoreOrUpdateMarketData(collection *mongo.Collection) error {
 	if len(bulkOps) > 0 {
 		_, err := collection.BulkWrite(context.TODO(), bulkOps)
 		if err != nil {
+			applog.Log(applog.ERROR, "error performing bulk write: %v", err)
 			return fmt.Errorf("error performing bulk write: %v", err)
 		}
-		fmt.Println("Market data updated successfully.")
+		applog.Log(applog.INFO, "Market data updated successfully.")
 	} else {
-		fmt.Println("No stock data to update.")
+		applog.Log(applog.INFO, "No stock data to update.")
 	}
 
 	return nil

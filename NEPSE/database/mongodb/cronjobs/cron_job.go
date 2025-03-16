@@ -1,8 +1,8 @@
 package cronjobs
 
 import (
-	"fmt"
 	"nepseserver/database/mongodb"
+	applog "nepseserver/log"
 
 	"github.com/robfig/cron/v3"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -24,7 +24,7 @@ func InitCronJobs(c *cron.Cron) *cron.Cron {
 
 func NewCronJob(c *cron.Cron) *CronJob {
 
-	fmt.Print("Cron Job Starting")
+	applog.Log(applog.DEBUG, "Cron Job Starting")
 	return &CronJob{
 		MongoClient: InitMongo(),
 		c:           InitCronJobs(c),

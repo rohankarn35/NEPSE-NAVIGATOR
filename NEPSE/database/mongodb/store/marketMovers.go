@@ -2,8 +2,8 @@ package store
 
 import (
 	"context"
-	"log"
 	dbmodels "nepseserver/database/models"
+	applog "nepseserver/log"
 	"nepseserver/server"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,12 +13,14 @@ import (
 func MarketMovers(collection *mongo.Collection) {
 	loserData, err := server.GetMarketMovers("losers")
 	if err != nil {
-		log.Fatalf("Failed to get IPO data: %v", err)
+		applog.Log(applog.ERROR, "Failed to get IPO data: %v", err)
+		return
 	}
 
 	gainerData, err := server.GetMarketMovers("gainers")
 	if err != nil {
-		log.Fatalf("Failed to get FPO data: %v", err)
+		applog.Log(applog.ERROR, "Failed to get FPO data: %v", err)
+		return
 	}
 	var loserdata []dbmodels.MarketMover
 	for _, ipo := range loserData {
@@ -68,20 +70,20 @@ func MarketMovers(collection *mongo.Collection) {
 
 	count, err := collection.CountDocuments(context.TODO(), bson.M{})
 	if err != nil {
-		log.Fatalf("Failed to count documents: %v", err)
+		applog.Log(applog.ERROR, "Failed to count documents: %v", err)
+		return
 	}
 
 	if count == 0 {
 		_, err := collection.InsertOne(context.TODO(), totalData)
 		if err != nil {
-			log.Printf("Failed to insert data: %v", err)
+			applog.Log(applog.ERROR, "Failed to insert data: %v", err)
 		}
 	} else {
 		_, err := collection.ReplaceOne(context.TODO(), bson.M{}, totalData)
 		if err != nil {
-			log.Printf("Failed to update data: %v", err)
+			applog.Log(applog.ERROR, "Failed to update data: %v", err)
 		}
 	}
-	log.Print("market movers sucessfully")
-
+	applog.Log(applog.INFO, "Market movers successfully updated")
 }

@@ -3,11 +3,14 @@ package services
 import (
 	"strings"
 
+	"github.com/rohankarn35/nepsemarketbot/applog" // Import the applog package
 	"github.com/rohankarn35/nepsemarketbot/models"
 	"github.com/rohankarn35/nepsemarketbot/utils"
 )
 
 func FormatIPOMessage(ipo models.IPOAlertModel) string {
+	applog.Log(applog.INFO, "Formatting IPO message for company: %s", ipo.CompanyName)
+
 	openingDate := ConvertDate(ipo.OpeningDateAD, ipo.OpeningDateBS)
 	closingDate := ConvertDate(ipo.ClosingDateAD, ipo.ClosingDateBS)
 	status := "Upcoming"
@@ -41,11 +44,13 @@ func FormatIPOMessage(ipo models.IPOAlertModel) string {
 
 	returnText += "\n================================\n"
 
+	applog.Log(applog.INFO, "Formatted IPO message for company: %s", ipo.CompanyName)
 	return returnText
-
 }
 
 func FormatIPOAlertMessage(ipo models.IPOAlertModel) string {
+	applog.Log(applog.INFO, "Formatting IPO alert message for company: %s", ipo.CompanyName)
+
 	closingDate := ConvertDate(ipo.ClosingDateAD, ipo.ClosingDateBS)
 	status := "Upcoming"
 	if ipo.Status != "Nearing" {
@@ -75,6 +80,6 @@ func FormatIPOAlertMessage(ipo models.IPOAlertModel) string {
 
 	returnText += "\n================================"
 
+	applog.Log(applog.INFO, "Formatted IPO alert message for company: %s", ipo.CompanyName)
 	return returnText
-
 }

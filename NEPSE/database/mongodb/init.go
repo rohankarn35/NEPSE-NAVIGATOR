@@ -2,9 +2,9 @@ package mongodb
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"nepseserver/constants"
+	applog "nepseserver/log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -27,7 +27,7 @@ func Init() *mongo.Client {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Print("\nConnected")
+	applog.Log(applog.INFO, "Connected to Database/n")
 
 	return client
 

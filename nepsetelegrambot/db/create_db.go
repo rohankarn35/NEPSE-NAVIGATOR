@@ -2,36 +2,27 @@ package ipodb
 
 import (
 	"fmt"
-	"log"
 
+	"github.com/rohankarn35/nepsemarketbot/applog"
 	"github.com/rohankarn35/nepsemarketbot/db/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func CreateOrUpdateDB(db *gorm.DB, nepse models.NepseData) error {
-	result := db.Model(&models.NepseData{}).Clauses(clause.OnConflict{
+func CreateOrUpdateDB(db *gorm.DB, data models.NepseData) error {
+	err := db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "unique_symbol"}},
-		DoUpdates: clause.AssignmentColumns(
-			[]string{
-				"status",
-				"opening_date_ad",
-				"opening_date_bs",
-				"closing_date_ad",
-				"closing_date_bs",
-			},
-		),
-		Where: clause.Where{
-			Exprs: []clause.Expression{
-				clause.Neq{Column: "nepse_data.status", Value: nepse.Status},
-			},
-		},
-	}).Create(&nepse)
-	if result.Error != nil {
-		log.Fatalf("Error inserting or updating IPO: %v\n", result.Error)
-		return result.Error
+		DoUpdates: clause.AssignmentColumns([]string{
+			"company_name", "stock_symbol", "share_registrar", "sector_name", "share_type",
+			"price_per_unit", "rating", "units", "min_units", "max_units", "total_amount",
+			"opening_date_ad", "opening_date_bs", "closing_date_ad", "closing_date_bs",
+			"closing_date_closing_time", "status", "type", "updated_at",
+		}),
+	}).Create(&data).Error
+	if err != nil {
+		applog.Log(applog.ERROR, "Failed to create/update nepse data: %v", err)
+		return fmt.Errorf("failed to create/update nepse data: %v", err)
 	}
-
-	fmt.Println("IPO created or updated successfully!")
+	applog.Log(applog.INFO, "Successfully created/updated nepse data for %s", data.UniqueSymbol)
 	return nil
 }

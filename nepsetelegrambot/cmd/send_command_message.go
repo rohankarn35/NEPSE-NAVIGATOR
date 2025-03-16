@@ -1,16 +1,23 @@
 package cmd
 
 import (
-	"log"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/rohankarn35/nepsemarketbot/services"
+	"github.com/rohankarn35/nepsemarketbot/applog"
 	"gorm.io/gorm"
 )
 
-func SendCommandMessage(bot *tgbotapi.BotAPI, chatID int64, updates tgbotapi.UpdatesChannel, db *gorm.DB, stockType string) {
+// SendCommandMessage sends the initial message with buttons
+func SendCommandMessage(bot *tgbotapi.BotAPI, chatID int64, db *gorm.DB, stockType string) {
+	// Initialize logger (optional, could reuse bot.log if configured globally)
+	err := applog.InitLogger("app.log", applog.DEBUG)
+	if err != nil {
+		applog.Log(applog.ERROR, "Failed to initialize logger: %v", err)
+		return
+	}
+	defer applog.CloseLogger()
+
 	// Send initial message with buttons
-	msg := tgbotapi.NewMessage(chatID, "Please choose an option:")
+	msg := tgbotapi.NewMessage(chatID, "Please choose an option for "+stockType+":")
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Upcoming", "upcoming"),
@@ -20,30 +27,23 @@ func SendCommandMessage(bot *tgbotapi.BotAPI, chatID int64, updates tgbotapi.Upd
 	msg.ReplyMarkup = keyboard
 
 	if _, err := bot.Send(msg); err != nil {
-		log.Printf("Error sending message: %v", err)
-		return
+		applog.Log(applog.ERROR, "Error sending message: %v", err)
 	}
+}
 
-	// Handle button clicks using the existing updates channel
-	for update := range updates {
-		if update.CallbackQuery != nil {
-			switch update.CallbackQuery.Data {
-			case "open":
-				services.SendCommandMessageService(bot, db, chatID, "Open", stockType)
-			case "upcoming":
-				services.SendCommandMessageService(bot, db, chatID, "Upcoming", stockType)
-
-			default:
-				continue
+// getStockTypeFromContext infers stock type from the original command (simplified approach)
+func getStockTypeFromContext(update tgbotapi.Update) string {
+	// Since callbacks don't carry the original command, we assume context from the message text
+	// This is a limitation; ideally, store state or pass it via callback data
+	if update.CallbackQuery != nil && update.CallbackQuery.Message != nil {
+		if update.CallbackQuery.Message.ReplyToMessage != nil {
+			switch update.CallbackQuery.Message.ReplyToMessage.Text {
+			case "Please choose an option for IPO:":
+				return "IPO"
+			case "Please choose an option for FPO:":
+				return "FPO"
 			}
-
-			// Acknowledge callback
-			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, "")
-			if _, err := bot.Request(callback); err != nil {
-				log.Printf("Error sending callback: %v", err)
-			}
-
-			break // Exit after handling one callback
 		}
 	}
+	return "IPO" // Default fallback (could be improved with better state management)
 }

@@ -1,9 +1,7 @@
 package ipodb
 
 import (
-	"fmt"
-	"log"
-
+	"github.com/rohankarn35/nepsemarketbot/applog"
 	"github.com/rohankarn35/nepsemarketbot/db/models"
 	"gorm.io/gorm"
 )
@@ -16,12 +14,11 @@ func CheckAndUpdateIPOStatus(db *gorm.DB, uniqueSymbol string, status string) bo
 	if result.Error == gorm.ErrRecordNotFound {
 		return true
 	} else if result.Error != nil {
-		log.Fatalf("Error querying IPO status: %v\n", result.Error)
+		applog.Log(applog.ERROR, "Error querying IPO status: %v", result.Error)
+		return false
 	}
 
-	log.Printf("Existing Status: %s, New Status: %s, IPO Name: %s\n", nepseData.Status, status, uniqueSymbol)
-
-	fmt.Print(nepseData.Status != status)
+	applog.Log(applog.INFO, "Existing Status: %s, New Status: %s, IPO Name: %s", nepseData.Status, status, uniqueSymbol)
 
 	return nepseData.Status != status
 }

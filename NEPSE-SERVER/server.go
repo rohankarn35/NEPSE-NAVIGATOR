@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"nepse-sever-graphql/applog"
 	"nepse-sever-graphql/graph"
 	"net/http"
 	"os"
@@ -21,9 +21,17 @@ import (
 const defaultPort = "8080"
 
 func main() {
-	err := godotenv.Load()
+
+	err := applog.InitLogger("app.log", applog.INFO) // Set minimum level to INFO
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		applog.Log(applog.ERROR, "Failed to initialize logger: %v", err)
+		return
+	}
+	defer applog.CloseLogger()
+	err = godotenv.Load()
+	if err != nil {
+		applog.Log(applog.ERROR, "Error loading .env file: %v", err)
+		return
 	}
 
 	port := os.Getenv("PORT")
@@ -34,12 +42,14 @@ func main() {
 	clientOptions := options.Client().ApplyURI(os.Getenv("DB_URL"))
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		applog.Log(applog.ERROR, "Failed to connect to MongoDB: %v", err)
+		return
 	}
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
-		log.Fatal(err)
+		applog.Log(applog.ERROR, "Failed to ping MongoDB: %v", err)
+		return
 	}
 
 	db := client.Database("nepsedata")
@@ -60,6 +70,6 @@ func main() {
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	applog.Log(applog.INFO, "connect to http://localhost:%s/ for GraphQL playground", port)
+	applog.Log(applog.ERROR, "%v", http.ListenAndServe(":"+port, nil))
 }

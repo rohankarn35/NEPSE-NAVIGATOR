@@ -3,3 +3,5 @@ go.mod
 go.sum
 *.yml
 graph/generated.go 
+makefile
+*.log

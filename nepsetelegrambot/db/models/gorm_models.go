@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type NepseData struct {
 	gorm.Model                    // Adds ID, CreatedAt, UpdatedAt, DeletedAt fields
-	UniqueSymbol           string `gorm:"unique;not null;primaryKey"` // Make it explicit primary key
+	UniqueSymbol           string `gorm:"unique;not null;primaryKey"` // Explicit primary key
 	CompanyName            string
 	StockSymbol            string
 	ShareRegistrar         string
@@ -27,7 +27,7 @@ type NepseData struct {
 
 type CronJob struct {
 	gorm.Model                    // Adds ID, CreatedAt, UpdatedAt, DeletedAt fields
-	UniqueSymbol           string `gorm:"not null"` // Foreign key, not primary key
+	UniqueSymbol           string `gorm:"not null"` // Foreign key referencing NepseData
 	StockSymbol            string
 	OpeningDateAD          string
 	OpeningDateBS          string

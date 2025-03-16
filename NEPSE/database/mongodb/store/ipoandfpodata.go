@@ -2,9 +2,8 @@ package store
 
 import (
 	"context"
-	"fmt"
-	"log"
 	dbmodels "nepseserver/database/models"
+	applog "nepseserver/log"
 	"nepseserver/server"
 	"nepseserver/utils"
 
@@ -16,7 +15,7 @@ func StoreIpoandFpoData(collection *mongo.Collection) {
 
 	ipoData, err := server.GetIPOAlert("IPO")
 	if err != nil {
-		log.Printf("Error fetching IPO data: %v", err)
+		applog.Log(applog.ERROR, "Error fetching IPO data: %v", err)
 		return
 	}
 
@@ -48,7 +47,7 @@ func StoreIpoandFpoData(collection *mongo.Collection) {
 	fpoData, err := server.GetIPOAlert("FPO")
 
 	if err != nil {
-		log.Printf("Error fetching FPO data: %v", err)
+		applog.Log(applog.ERROR, "Error fetching FPO data: %v", err)
 		return
 	}
 
@@ -82,25 +81,25 @@ func StoreIpoandFpoData(collection *mongo.Collection) {
 	}
 	count, err := collection.CountDocuments(context.TODO(), bson.M{})
 	if err != nil {
-		log.Fatalf("Failed to count documents: %v", err)
+		applog.Log(applog.ERROR, "Failed to count documents: %v", err)
 	}
 
 	if count == 0 {
 		_, err := collection.InsertOne(context.TODO(), ipo)
 		if err != nil {
-			log.Printf("Failed to insert data: %v", err)
+			applog.Log(applog.ERROR, "Failed to insert data: %v", err)
 		}
 	} else {
 		_, err := collection.ReplaceOne(context.TODO(), bson.M{}, ipo)
 		if err != nil {
-			log.Printf("Failed to update data: %v", err)
+			applog.Log(applog.ERROR, "Failed to update data: %v", err)
 		}
 	}
 
 	if err != nil {
-		log.Printf("Error replacing document: %v", err)
+		applog.Log(applog.ERROR, "Error replacing document: %v", err)
 	}
 
-	fmt.Print("ipo-fpo updated")
+	applog.Log(applog.INFO, "ipo-fpo updated")
 
 }
