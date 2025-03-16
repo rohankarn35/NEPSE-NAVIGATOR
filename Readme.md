@@ -92,6 +92,10 @@ The system consists of two main components:
 5. Push to the branch (`git push origin feature-branch`).
 6. Open a pull request.
 
+## Community
+
+Join our Telegram channel for updates and discussions: [NEPSE Navigator Telegram Channel](https://t.me/nepsenavigator)
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](./License.md) file for details.
